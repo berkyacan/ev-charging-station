@@ -10,6 +10,15 @@ Built as a university **Fundamentals of Software Engineering** team project to d
 - a working end-to-end demo flow
 - traceability between requirements (use cases) and implementation
 
+## Team & Roles
+
+Team project by Group 3 (4 members), Fundamentals of Software Engineering, Ege University Computer Engineering, 2025–2026 Spring.
+
+- **Berkay Can Benli**: requirements engineering and project documentation. This covered viewpoint analysis, the 56 functional, non-functional, and domain requirements, MoSCoW prioritization, conflict resolution, the use cases (UC-01 to UC-03), and the UML domain model.
+- **Implementation:** the backend and frontend code was written by a teammate and is published here with their permission.
+
+📄 **[Requirements Engineering Report](docs/requirements/README.md)**: the full analysis, plus a traceability table linking each requirement to the code and tests that implement it.
+
 ## Tech Stack
 
 | Layer    | Technology                                                        |
@@ -221,7 +230,7 @@ npm test
 
 The suite covers:
 
-- **Use-case tests** mapped to requirements: `uc01-reservation`, `uc02-charger-availability`, `uc03-charging-session`
+- **Use-case tests** mapped to the use cases in the [requirements report](docs/requirements/README.md#5-use-cases-of-the-main-scenarios): `uc01-reservation`, `uc02-charger-availability`, `uc03-charging-session`
 - **Domain logic**: reservation validation, charging session cost summary
 - **Services and controllers** for every module, with Prisma mocked
 - **DTO validation** for all request bodies
