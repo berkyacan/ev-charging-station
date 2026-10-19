@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  EV_DRIVER
+  OPERATOR
+  ADMIN
+}
+
+enum ConnectorType {
+  TYPE2
+  CCS
+  CHADEMO
+}
+
+enum ChargerType {
+  AC
+  DC
+}
+
+enum ChargerStatus {
+  AVAILABLE
+  OCCUPIED
+  OFFLINE
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ChargingSessionStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum PaymentMethod {
+  DEMO_WALLET
+  DEMO_CARD
+}
+
+enum IssueReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model User {
+  id                String         @id @default(cuid())
+  name              String
+  email             String         @unique
+  passwordHash      String
+  role              UserRole
+  demoWalletBalance Decimal        @default(0) @db.Decimal(10, 2)
+  createdAt         DateTime       @default(now())
+  vehicles          Vehicle[]
+  reservations      Reservation[]
+  issueReports      IssueReport[]
+  notifications     Notification[]
+}
+
+model Vehicle {
+  id                  String          @id @default(cuid())
+  userId              String
+  brand               String
+  model               String
+  batteryCapacityKWh  Decimal         @db.Decimal(6, 2)
+  connectorType       ConnectorType
+  maxSupportedPowerKW Decimal         @db.Decimal(6, 2)
+  plateNumber         String
+  createdAt           DateTime        @default(now())
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservations        Reservation[]
+
+  @@index([userId])
+  @@unique([userId, plateNumber])
+}
+
+model Station {
+  id             String         @id @default(cuid())
+  name           String         @unique
+  address        String
+  latitude       Decimal        @db.Decimal(9, 6)
+  longitude      Decimal        @db.Decimal(9, 6)
+  operatingHours String
+  createdAt      DateTime       @default(now())
+  chargers       Charger[]
+  reservations   Reservation[]
+  issueReports   IssueReport[]
+}
+
+model Charger {
+  id            String        @id @default(cuid())
+  stationId     String
+  label         String
+  chargerType   ChargerType
+  connectorType ConnectorType
+  powerOutputKW Decimal       @db.Decimal(6, 2)
+  pricePerKWh   Decimal       @db.Decimal(10, 2)
+  status        ChargerStatus
+  createdAt     DateTime      @default(now())
+  station       Station       @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  reservations  Reservation[]
+  issueReports  IssueReport[]
+
+  @@unique([stationId, label])
+  @@index([stationId])
+}
+
+model Reservation {
+  id              String             @id @default(cuid())
+  userId          String
+  vehicleId       String
+  stationId       String
+  chargerId       String
+  startTime       DateTime
+  endTime         DateTime
+  status          ReservationStatus  @default(CONFIRMED)
+  createdAt       DateTime           @default(now())
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle         Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  station         Station            @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  charger         Charger            @relation(fields: [chargerId], references: [id], onDelete: Cascade)
+  chargingSession ChargingSession?
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([stationId])
+  @@index([chargerId])
+  @@index([startTime, endTime])
+  @@index([chargerId, status, startTime, endTime])
+}
+
+model ChargingSession {
+  id                       String                @id @default(cuid())
+  reservationId            String                @unique
+  startEnergyKWh           Decimal?              @db.Decimal(8, 2)
+  endEnergyKWh             Decimal?              @db.Decimal(8, 2)
+  consumedKWh              Decimal?              @db.Decimal(8, 2)
+  pricePerKWh              Decimal               @db.Decimal(10, 2)
+  totalCost                Decimal?              @db.Decimal(10, 2)
+  status                   ChargingSessionStatus @default(ACTIVE)
+  paymentStatus            PaymentStatus         @default(PENDING)
+  paymentMethod            PaymentMethod?
+  transactionId            String?
+  receiptNumber            String?
+  walletBalanceBeforePayment Decimal?            @db.Decimal(10, 2)
+  walletBalanceAfterPayment  Decimal?            @db.Decimal(10, 2)
+  paidAt                   DateTime?
+  createdAt                DateTime              @default(now())
+  reservation              Reservation           @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+}
+
+model IssueReport {
+  id          String            @id @default(cuid())
+  userId      String
+  stationId   String
+  chargerId   String
+  issueType   String
+  description String
+  status      IssueReportStatus @default(OPEN)
+  createdAt   DateTime          @default(now())
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  station     Station           @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  charger     Charger           @relation(fields: [chargerId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stationId])
+  @@index([chargerId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+}
